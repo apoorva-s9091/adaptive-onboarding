@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+backend/models/*.pkl
+backend/data/onet_skills.csv
+node_modules/
+frontend/dist/
+.DS_Store
+*.egg-info/
+dist/
+.pytest_cache/
