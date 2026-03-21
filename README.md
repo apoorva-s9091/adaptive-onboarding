@@ -1,249 +1,144 @@
-# BYTEFORCE — AI-Adaptive Onboarding Engine
-### HackMatrix 2.0 · IIT Patna
+SynapseOnboard — AI-Adaptive Onboarding Engine
 
-An AI-driven adaptive learning engine that parses a new hire's resume and job description, identifies exact skill gaps, and dynamically generates a personalized, prerequisite-aware learning path to reach role-specific competency.
+Upload a resume and job description. Get a personalized, prerequisite-aware learning path to reach role competency — powered by NLP, semantic similarity, and knowledge graphs.
 
----
 
-## The Problem
-
+The Problem
 Corporate onboarding uses static, one-size-fits-all curricula. Experienced hires waste time on concepts they already know. Beginners get overwhelmed by advanced modules. Neither reaches competency efficiently.
+The Solution
+SynapseOnboard parses both resume and JD, semantically identifies skill gaps, scores confidence per skill using an original ML model, and generates an ordered knowledge-graph-based learning path — grounded in a verified course catalog with zero hallucinations.
 
-## Our Solution
+Quick Start
+Prerequisites
 
-BYTEFORCE parses both the resume and JD, semantically identifies gaps, scores confidence per skill using an original ML model, and generates an ordered knowledge-graph-based learning path — grounded in a verified course catalog with zero hallucinations.
+Python 3.11+
+Node.js 18+
+Ollama (optional — app works without it, quiz uses fallback MCQs)
 
----
-
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- [Ollama](https://ollama.com/download) installed and running
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/your-team/byteforce-onboarding
-cd byteforce-onboarding
-```
-
-### 2. Backend setup
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate (Windows)
-venv\Scripts\activate
-
-# Activate (Mac/Linux)
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Pull DeepSeek-R1 model (one-time, ~5GB)
-ollama pull deepseek-r1:8b
-
-# Pre-train L4 confidence model (one-time, ~2 seconds)
-python -m backend.layers.l4_confidence_scorer
-```
-
-### 3. Run backend
-```bash
+1. Clone the repository
+bashgit clone https://github.com/apoorva-s9091/adaptive-onboarding
+cd adaptive-onboarding
+2. Backend setup
+bashpip install -r requirements.txt
 uvicorn backend.main:app --reload --port 8000
-```
-
-### 4. Frontend setup (new terminal)
-```bash
-cd frontend
+3. Frontend setup (new terminal)
+bashcd frontend
 npm install
 npm run dev
-```
-
-### 5. Open browser
-```
+4. Open browser
 http://localhost:5173
-```
 
----
+Upload a PDF resume and PDF job description to get started.
 
-## Docker
 
-```bash
-# Build
-docker build -t byteforce-onboarding .
+Docker (Recommended)
+bash# Build
+docker build -t adaptive-onboarding .
 
-# Run (ensure ollama serve is running on host)
-docker run -p 8000:8000 --add-host=host.docker.internal:host-gateway byteforce-onboarding
-```
+# Run
+docker run -p 8000:8000 adaptive-onboarding
+Then open http://localhost:8000
 
-> Note: Ollama must be running on the host machine. Quiz generation and reasoning trace require DeepSeek-R1:8b to be available at `http://localhost:11434`.
+Note: Ollama is optional. If running for quiz/reasoning features, start it on the host before running the container:
+bashdocker run -p 8000:8000 --add-host=host.docker.internal:host-gateway adaptive-onboarding
 
----
 
-## Architecture — 8-Layer AI Pipeline
-
-```
+Architecture — 8-Layer AI Pipeline
 Resume PDF + JD PDF
         ↓
-  L1: Resume Parser (BERT NER)
-  L2: JD Parser (JobBERT)
+  L1: Resume Parser     (BERT NER → keyword fallback)
+  L2: JD Parser         (JobBERT → keyword fallback)
         ↓
-  L3: Semantic Gap Analysis ← YOUR ORIGINAL CODE
-  L4: Confidence Scorer    ← YOUR ORIGINAL ML MODEL
-  L5: Path Generator       ← YOUR ORIGINAL CODE
+  L3: Semantic Gap Analysis     ← Original Implementation
+  L4: Confidence Scorer         ← Original ML Model
+  L5: Learning Path Generator   ← Original Implementation
         ↓
-  L6: Course Grounding (ChromaDB RAG)
-  L7: Reasoning Trace (DeepSeek-R1)
-  L8: Quiz Generation (DeepSeek-R1)
+  L6: Course Grounding  (ChromaDB RAG — zero hallucinations)
+  L7: Reasoning Trace   (DeepSeek-R1 via Ollama)
+  L8: Quiz Generation   (DeepSeek-R1 via Ollama)
         ↓
   React Frontend + D3.js Knowledge Graph
-```
+LayerPurposeModel / ToolL1Resume skill extractionyashpwr/resume-ner-bert-v2 · HuggingFace · 90.87% F1L2JD skill extractionjjzha/jobbert_skill_extraction · NAACL 2022L3Semantic gap analysisall-MiniLM-L6-v2 + O*NET weights · OriginalL4Adaptive confidence scoringLogisticRegression · sklearn · Original ML ModelL5Knowledge graph pathingNetworkX topological sort · OriginalL6Course grounding (no hallucinations)ChromaDB + all-MiniLM-L6-v2L7Reasoning traceDeepSeek-R1:8b · Ollama · MIT licenseL8Quiz generationDeepSeek-R1:8b · Ollama · prompt-based
 
-| Layer | Purpose | Model / Tool |
-|---|---|---|
-| L1 | Resume skill extraction | `yashpwr/resume-ner-bert-v2` · HuggingFace · 90.87% F1 |
-| L2 | JD skill extraction | `jjzha/jobbert_skill_extraction` · NAACL 2022 |
-| L3 | **Semantic gap analysis** | `all-MiniLM-L6-v2` + O\*NET weights · **Original** |
-| L4 | **Adaptive confidence scoring** | `LogisticRegression` · sklearn · **Original ML** |
-| L5 | **Knowledge graph pathing** | `NetworkX` topological sort · **Original** |
-| L6 | Course grounding (no hallucinations) | `ChromaDB` + `all-MiniLM-L6-v2` |
-| L7 | Reasoning trace | `DeepSeek-R1:8b` · Ollama · MIT license |
-| L8 | Quiz generation | `DeepSeek-R1:8b` · Ollama · prompt-based |
-
----
-
-## Skill-Gap Analysis Logic (L3)
-
-Instead of exact string matching, L3 uses **semantic cosine similarity**:
-
-```python
-similarity = cosine(embed(resume_skill), embed(jd_skill))
+Skill-Gap Analysis Logic (L3) — Original Implementation
+Instead of exact string matching, L3 uses semantic cosine similarity via MiniLM embeddings:
+pythonsimilarity = cosine_similarity(embed(resume_skill), embed(jd_skill))
 gap = True if similarity < 0.65 else False
-```
+This means "data analysis" partially covers "business intelligence" (similarity ≈ 0.74) — avoiding false gaps that exact string matching would produce.
+Each gap is weighted by its O*NET importance score, producing a priority_score that determines the learning order:
+pythonpriority_score = (1 - semantic_similarity) * onet_importance
+Skills with high importance and low coverage are learned first.
 
-This means "data analysis" partially covers "business intelligence" (similarity = 0.74) — avoiding false gaps that exact matching would produce.
+Adaptive Pathing Algorithm (L4 + L5) — Original Implementation
+L4 — Confidence Scorer (Original LogisticRegression Model)
+Trained on 120 synthetic samples with 4 features:
+FeatureDescriptionquiz_scoreScore from L8 diagnostic quiz (0–1)years_experienceExtracted from resume, normalized to 0–1semantic_similarityBest match score from L3skill_frequencyO*NET importance weight
+Output: beginner / intermediate / advanced — determines which course tier to assign.
+L5 — Knowledge Graph Pathing (Original NetworkX Implementation)
 
-Each gap is then weighted by its O\*NET importance score, producing a `priority_score` that determines learning order.
+Builds a directed prerequisite graph (e.g. Python → Statistics → ML → Deep Learning → NLP)
+Runs topological sort to guarantee prerequisites are always learned first
+Assigns difficulty-appropriate course per node based on L4 confidence output
+Falls back to priority-score ordering if cycles are detected
 
----
 
-## Adaptive Pathing Algorithm (L4 + L5)
+Dependencies
+Python
+fastapi==0.111.0              # REST API framework
+uvicorn==0.29.0               # ASGI server
+pdfplumber==0.11.0            # PDF text extraction
+transformers==4.41.0          # HuggingFace BERT models (L1, L2)
+torch==2.3.0                  # PyTorch backend
+sentence-transformers==3.0.0  # MiniLM embeddings (L3, L6)
+scikit-learn==1.4.2           # LogisticRegression (L4)
+networkx==3.3                 # Graph algorithms (L5)
+pandas==2.2.2                 # Data handling
+numpy==1.26.4                 # Numerical operations
+requests==2.32.0              # Ollama API calls (L7, L8)
+python-multipart==0.0.9       # File upload handling
+pydantic==2.7.0               # Request validation
+Frontend
+react@18.3.1                  # UI framework
+react-router-dom@6.23.1       # Client-side routing
+d3@7.9.0                      # Knowledge graph visualization
+axios@1.7.2                   # API calls
+vite@5.3.1                    # Build tool
+tailwindcss@3.4.4             # Styling
+framer-motion@11.2.10         # Animations
 
-**L4 — Confidence Scorer** (original LogisticRegression model):
-```
-Features:
-  - quiz_score         (weight: 0.40)
-  - years_experience   (weight: 0.30)
-  - semantic_similarity(weight: 0.20)
-  - skill_frequency    (weight: 0.10)
+Datasets Used
+DatasetSourceUsed ForResume DatasetKaggle — snehaanbhawalL1 NER evaluationO*NET Skills DBonetcenter.orgL3 importance weights, L5 skill taxonomyJobs & JD DatasetKaggle — kshitizregmiL2 testing, coverage evaluation
 
-Output: beginner / intermediate / advanced
-```
+Models Cited
+ModelSourceLicenseUsed Inresume-ner-bert-v2HuggingFace — yashpwrApache 2.0L1jobbert_skill_extractionHuggingFace — jjzha · NAACL 2022MITL2all-MiniLM-L6-v2HuggingFace — sentence-transformersApache 2.0L3, L6DeepSeek-R1:8bOllama — DeepSeekMITL7, L8
 
-**L5 — Knowledge Graph** (original NetworkX implementation):
-- Builds a directed prerequisite graph (Python → Statistics → ML → Deep Learning → NLP)
-- Runs topological sort to guarantee correct learning order
-- Assigns difficulty-appropriate course per node based on L4 output
+Validation Metrics
+MetricValueResume NER F1 Score90.87% (yashpwr/resume-ner-bert-v2)Semantic gap threshold0.65 cosine similarityL4 model training samples120 synthetic profilesHallucination rate0% (RAG-grounded course catalog)Supported job domains38 skill categoriesPrerequisite graph nodes25+ skills with defined dependency chains
 
----
-
-## Dependencies
-
-### Python
-```
-fastapi==0.111.0          # REST API
-uvicorn==0.29.0           # ASGI server
-pdfplumber==0.11.0        # PDF text extraction
-transformers==4.41.0      # HuggingFace BERT models
-torch==2.3.0              # PyTorch backend
-sentence-transformers==3.0.0  # MiniLM embeddings
-scikit-learn==1.4.2       # LogisticRegression (L4)
-networkx==3.3             # Graph algorithms (L5)
-chromadb==0.5.0           # Vector store (L6)
-pandas==2.2.2             # O*NET data loading
-numpy==1.26.4             # Numerical operations
-requests==2.32.0          # Ollama API calls
-python-multipart==0.0.9   # File upload handling
-pydantic==2.7.0           # Request validation
-```
-
-### Frontend
-```
-react@18.3.1              # UI framework
-react-router-dom@6.23.1  # Client-side routing
-d3@7.9.0                  # Knowledge graph visualization
-axios@1.7.2               # API calls
-vite@5.3.1                # Build tool
-tailwindcss@3.4.4         # Styling
-```
-
----
-
-## Datasets Used
-
-| Dataset | Source | Size | Used For |
-|---|---|---|---|
-| Resume Dataset | [Kaggle — snehaanbhawal](https://www.kaggle.com/datasets/snehaanbhawal/resume-dataset) | 2,484 resumes | L1 NER evaluation |
-| O\*NET Skills DB | [onetcenter.org](https://www.onetcenter.org/db_releases.html) | 900+ occupations | L3 importance weights, L5 taxonomy |
-| JD Dataset | [Kaggle — kshitizregmi](https://www.kaggle.com/datasets/kshitizregmi/jobs-and-job-description) | 3,800+ JDs | L2 testing, coverage evaluation |
-
----
-
-## Models Cited
-
-| Model | Source | License | Used In |
-|---|---|---|---|
-| `resume-ner-bert-v2` | HuggingFace (yashpwr) | Apache 2.0 | L1 |
-| `jobbert_skill_extraction` | HuggingFace (jjzha) · NAACL 2022 | MIT | L2 |
-| `all-MiniLM-L6-v2` | HuggingFace (sentence-transformers) | Apache 2.0 | L3, L6 |
-| `DeepSeek-R1:8b` | Ollama / DeepSeek | MIT | L7, L8 |
-
----
-
-## Validation Metrics
-
-| Metric | Value |
-|---|---|
-| Resume NER F1 Score | 90.87% |
-| Gap detection threshold | 0.65 cosine similarity |
-| Skill extraction accuracy | ~94% |
-| L4 training samples | 120 synthetic |
-| Hallucination rate | 0% (RAG-grounded) |
-| Estimated time reduction | 3× faster to competency |
-
----
-
-## Project Structure
-
-```
-byteforce-onboarding/
+Project Structure
+adaptive-onboarding/
 ├── backend/
 │   ├── layers/
-│   │   ├── l1_resume_parser.py      # BERT NER
-│   │   ├── l2_jd_parser.py          # JobBERT
-│   │   ├── l3_skill_gap.py          # Original semantic gap
-│   │   ├── l4_confidence_scorer.py  # Original ML model
-│   │   ├── l5_path_generator.py     # Original graph pathing
-│   │   ├── l6_grounding.py          # ChromaDB RAG
-│   │   └── l7_l8_reasoning_quiz.py  # DeepSeek-R1
+│   │   ├── l1_resume_parser.py       # BERT NER + keyword fallback
+│   │   ├── l2_jd_parser.py           # JobBERT + keyword fallback
+│   │   ├── l3_skill_gap.py           # Original semantic gap analysis
+│   │   ├── l4_confidence_scorer.py   # Original LogisticRegression model
+│   │   ├── l5_path_generator.py      # Original knowledge graph pathing
+│   │   ├── l6_grounding.py           # ChromaDB RAG grounding
+│   │   └── l7_l8_reasoning_quiz.py   # DeepSeek-R1 reasoning + quiz
 │   ├── data/
-│   │   └── catalog.json             # Verified course catalog
-│   ├── models/                      # L4 saved model (auto-generated)
-│   └── main.py                      # FastAPI entry point
+│   │   └── catalog.json              # Verified course catalog (26 courses)
+│   ├── models/                       # L4 saved model (auto-generated on startup)
+│   └── main.py                       # FastAPI entry point
 ├── frontend/
 │   └── src/
-│       ├── pages/                   # Home, Results, Quiz, Trace, Demo, Docs
-│       ├── components/              # Navbar, Graph, Cards, etc.
-│       └── api/client.js            # Axios API calls
-├── Dockerfile
+│       ├── pages/                    # Home, Results, Quiz, Trace, Demo, Docs
+│       ├── components/               # Navbar, Graph, Cards, DropZone etc.
+│       └── api/client.js             # Axios API calls
+├── Dockerfile                        # Multi-stage build (Node + Python)
 ├── requirements.txt
 └── README.md
-```
 
----
-
-## Team
-
-**BYTEFORCE** — HackMatrix 2.0, IIT Patna
+ 
+License
+MIT License — see LICENSE for details.
