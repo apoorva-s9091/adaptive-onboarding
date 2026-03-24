@@ -276,7 +276,7 @@ curl -X POST http://localhost:8000/analyze \
   -F "resume=@resume.pdf" \
   -F "jd=@job_description.pdf"
 ```
-
+FOR ANY QUERRY CONTACT : apoorvas9091@gmail.com
 ---
 
 <div align="center">
